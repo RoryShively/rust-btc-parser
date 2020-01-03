@@ -14,13 +14,13 @@ use blockchain::proto::tx::{Tx, TxOutpoint, TxInput, TxOutput};
 pub trait BlockchainRead: io::Read {
     fn read_256hash(&mut self) -> OpResult<[u8; 32]> {
         let mut arr = [0u8; 32];
-        try!(self.read_exact(arr.borrow_mut()));
+        self.read_exact(arr.borrow_mut())?;
         Ok(arr)
     }
 
     fn read_u8_vec(&mut self, count: u32) -> OpResult<Vec<u8>> {
         let mut arr = vec![0u8; count as usize];
-        try!(self.read_exact(arr.borrow_mut()));
+        self.read_exact(arr.borrow_mut())?;
         Ok(arr)
     }
 
@@ -30,55 +30,55 @@ pub trait BlockchainRead: io::Read {
                   blk_offset: usize,
                   blocksize: u32,
                   version_id: u8) -> OpResult<Block> {
-        let header = try!(self.read_block_header());
-        let tx_count = try!(VarUint::read_from(self));
-        let txs = try!(self.read_txs(tx_count.value, version_id));
+        let header = self.read_block_header()?;
+        let tx_count = VarUint::read_from(self)?;
+        let txs = self.read_txs(tx_count.value, version_id)?;
         Ok(Block::new(blk_index, blk_offset, blocksize, header, tx_count, txs))
     }
 
     fn read_block_header(&mut self) -> OpResult<BlockHeader> {
         Ok(BlockHeader::new(
-            try!(self.read_u32::<LittleEndian>()),
-            try!(self.read_256hash()),
-            try!(self.read_256hash()),
-            try!(self.read_u32::<LittleEndian>()),
-            try!(self.read_u32::<LittleEndian>()),
-            try!(self.read_u32::<LittleEndian>())))
+            self.read_u32::<LittleEndian>()?,
+            self.read_256hash()?,
+            self.read_256hash()?,
+            self.read_u32::<LittleEndian>()?,
+            self.read_u32::<LittleEndian>()?,
+            self.read_u32::<LittleEndian>()?))
     }
 
     fn read_txs(&mut self, tx_count: u64, version_id: u8) -> OpResult<Vec<Tx>> {
         let mut txs: Vec<Tx> = Vec::with_capacity(tx_count as usize);
         for _ in 0..tx_count {
-            let tx_version = try!(self.read_u32::<LittleEndian>());
-            let marker = try!(self.read_u8());
+            let tx_version = self.read_u32::<LittleEndian>()?;
+            let marker = self.read_u8()?;
             let in_count: VarUint;
             if marker == 0x00 {
                 // SegWit hack
-                /*let flag = */try!(self.read_u8());
-                in_count = try!(VarUint::read_from(self));
+                /*let flag = */self.read_u8()?;
+                in_count = VarUint::read_from(self)?;
             } else {
                 in_count = match marker {
-                    0x01...0xfc => VarUint::from(marker),
-                    0xfd => VarUint::from(try!(self.read_u16::<LittleEndian>())),
-                    0xfe => VarUint::from(try!(self.read_u32::<LittleEndian>())),
-                    0xff => VarUint::from(try!(self.read_u64::<LittleEndian>())),
+                    0x01..=0xfc => VarUint::from(marker),
+                    0xfd => VarUint::from(self.read_u16::<LittleEndian>()?),
+                    0xfe => VarUint::from(self.read_u32::<LittleEndian>()?),
+                    0xff => VarUint::from(self.read_u64::<LittleEndian>()?),
                     _ => return Err(OpError::new(OpErrorKind::RuntimeError).join_msg("Invalid VarUint value")),
                 };
             }
-            let inputs = try!(self.read_tx_inputs(in_count.value));
-            let out_count = try!(VarUint::read_from(self));
-            let outputs = try!(self.read_tx_outputs(out_count.value));
+            let inputs = self.read_tx_inputs(in_count.value)?;
+            let out_count = VarUint::read_from(self)?;
+            let outputs = self.read_tx_outputs(out_count.value)?;
             if marker == 0x00 {
                 // SegWit hack
                 for _ in 0..in_count.value {
-                    let item_count = try!(VarUint::read_from(self));
+                    let item_count = VarUint::read_from(self)?;
                     for _ in 0..item_count.value {
-                        let witness_len = try!(VarUint::read_from(self));
-                        let _ = try!(self.read_u8_vec(witness_len.value as u32));
+                        let witness_len = VarUint::read_from(self)?;
+                        let _ = self.read_u8_vec(witness_len.value as u32)?;
                     }
                 }
             }
-            let tx_locktime = try!(self.read_u32::<LittleEndian>());
+            let tx_locktime = self.read_u32::<LittleEndian>()?;
             let tx = Tx::new(tx_version,
                              in_count, &inputs,
                              out_count, &outputs,
@@ -91,8 +91,8 @@ pub trait BlockchainRead: io::Read {
 
     fn read_tx_outpoint(&mut self) -> OpResult<TxOutpoint> {
         let outpoint = TxOutpoint {
-            txid: try!(self.read_256hash()),
-            index: try!(self.read_u32::<LittleEndian>())
+            txid: self.read_256hash()?,
+            index: self.read_u32::<LittleEndian>()?
         };
         Ok(outpoint)
     }
@@ -100,10 +100,10 @@ pub trait BlockchainRead: io::Read {
     fn read_tx_inputs(&mut self, input_count: u64) -> OpResult<Vec<TxInput>> {
         let mut inputs: Vec<TxInput> = Vec::with_capacity(input_count as usize);
         for _ in 0..input_count {
-            let outpoint = try!(self.read_tx_outpoint());
-            let script_len = try!(VarUint::read_from(self));
-            let script_sig = try!(self.read_u8_vec(script_len.value as u32));
-            let seq_no = try!(self.read_u32::<LittleEndian>());
+            let outpoint = self.read_tx_outpoint()?;
+            let script_len = VarUint::read_from(self)?;
+            let script_sig = self.read_u8_vec(script_len.value as u32)?;
+            let seq_no = self.read_u32::<LittleEndian>()?;
 
             let input = TxInput {
                 outpoint: outpoint,
@@ -119,9 +119,9 @@ pub trait BlockchainRead: io::Read {
     fn read_tx_outputs(&mut self, output_count: u64) -> OpResult<Vec<TxOutput>> {
         let mut outputs: Vec<TxOutput> = Vec::with_capacity(output_count as usize);
         for _ in 0..output_count {
-            let value = try!(self.read_u64::<LittleEndian>());
-            let script_len = try!(VarUint::read_from(self));
-            let script_pubkey = try!(self.read_u8_vec(script_len.value as u32));
+            let value = self.read_u64::<LittleEndian>()?;
+            let script_len = VarUint::read_from(self)?;
+            let script_pubkey = self.read_u8_vec(script_len.value as u32)?;
 
             let output = TxOutput {
                 value: value,

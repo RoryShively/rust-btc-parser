@@ -59,10 +59,10 @@ impl Callback for CsvDump {
             let cap = 4000000;
             let cb = CsvDump {
                 dump_folder:    PathBuf::from(dump_folder),
-                block_writer:   try!(CsvDump::create_writer(cap, dump_folder.join("blocks.csv.tmp"))),
-                tx_writer:      try!(CsvDump::create_writer(cap, dump_folder.join("transactions.csv.tmp"))),
-                txin_writer:    try!(CsvDump::create_writer(cap, dump_folder.join("tx_in.csv.tmp"))),
-                txout_writer:   try!(CsvDump::create_writer(cap, dump_folder.join("tx_out.csv.tmp"))),
+                block_writer:   CsvDump::create_writer(cap, dump_folder.join("blocks.csv.tmp"))?,
+                tx_writer:      CsvDump::create_writer(cap, dump_folder.join("transactions.csv.tmp"))?,
+                txin_writer:    CsvDump::create_writer(cap, dump_folder.join("tx_in.csv.tmp"))?,
+                txout_writer:   CsvDump::create_writer(cap, dump_folder.join("tx_out.csv.tmp"))?,
                 start_height: 0, end_height: 0, tx_count: 0, in_count: 0, out_count: 0
             };
             Ok(cb)

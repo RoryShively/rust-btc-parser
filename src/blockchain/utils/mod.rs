@@ -1,4 +1,4 @@
-use std::env;
+use dirs;
 use std::path::PathBuf;
 
 use crypto::sha2::Sha256;
@@ -128,7 +128,7 @@ pub fn hex_to_arr32_swapped(hex_str: &str) -> [u8; 32] {
 
 /// Returns default directory. TODO: test on windows
 pub fn get_absolute_blockchain_dir(coin_type: &CoinType) -> PathBuf {
-    PathBuf::from(env::home_dir().expect("Unable to get home path from env!"))
+    PathBuf::from(dirs::home_dir().expect("Unable to get home path from env!"))
         .join(coin_type.default_folder.clone())
 }
 

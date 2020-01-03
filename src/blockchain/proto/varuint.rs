@@ -1,4 +1,4 @@
-use std::io::{self, Read, Error, ErrorKind};
+use std::io::{self, Read};
 use std::convert::From;
 use std::fmt;
 
@@ -22,13 +22,12 @@ impl VarUint {
     }
 
     pub fn read_from<R: Read + ?Sized>(reader: &mut R) -> io::Result<VarUint> {
-        let first = try!(reader.read_u8()); // read first length byte
+        let first = reader.read_u8()?; // read first length byte
         let vint = match first {
-            0x00...0xfc => VarUint::from(first),
-            0xfd => VarUint::from(try!(reader.read_u16::<LittleEndian>())),
-            0xfe => VarUint::from(try!(reader.read_u32::<LittleEndian>())),
-            0xff => VarUint::from(try!(reader.read_u64::<LittleEndian>())),
-            _ => return Err(Error::new(ErrorKind::InvalidData, "Invalid VarUint value")),
+            0x00..=0xfc => VarUint::from(first),
+            0xfd => VarUint::from(reader.read_u16::<LittleEndian>()?),
+            0xfe => VarUint::from(reader.read_u32::<LittleEndian>()?),
+            0xff => VarUint::from(reader.read_u64::<LittleEndian>()?)
         };
         Ok(vint)
     }

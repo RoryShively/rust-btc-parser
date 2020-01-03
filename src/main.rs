@@ -12,6 +12,8 @@ extern crate byteorder;
 extern crate rust_base58;
 extern crate seek_bufread;
 
+extern crate dirs;
+
 #[macro_use]
 pub mod errors;
 pub mod blockchain;
@@ -43,7 +45,7 @@ use callbacks::unspentcsvdump::UnspentCsvDump;
 
 /// Holds all available user arguments
 pub struct ParserOptions {
-    callback: Box<Callback>,         /* Name of the callback which gets executed for each block. (See callbacks/mod.rs)                      */
+    callback: Box<dyn Callback>,         /* Name of the callback which gets executed for each block. (See callbacks/mod.rs)                      */
     coin_type: CoinType,             /* Holds the name of the coin we want to parse                                                          */
     verify_merkle_root: bool,        /* Enable this if you want to check the merkle root of each block. Aborts if something is fishy.        */
     thread_count: u8,                /* Number of core threads. The callback gets sequentially called!                                       */
@@ -248,13 +250,13 @@ fn parse_args() -> OpResult<ParserOptions> {
     let worker_backlog = value_t!(matches, "backlog", usize).unwrap_or(100);
 
     // Set callback
-    let callback: Box<Callback>;
+    let callback: Box<dyn Callback>;
     if let Some(ref matches) = matches.subcommand_matches("simplestats") {
-         callback = Box::new(try!(SimpleStats::new(matches)));
+         callback = Box::new(SimpleStats::new(matches)?);
     } else if let Some(ref matches) = matches.subcommand_matches("csvdump") {
-         callback = Box::new(try!(CsvDump::new(matches)));
+         callback = Box::new(CsvDump::new(matches)?);
     } else if let Some(ref matches) = matches.subcommand_matches("unspentcsvdump") {
-         callback = Box::new(try!(UnspentCsvDump::new(matches)));
+         callback = Box::new(UnspentCsvDump::new(matches)?);
     } else {
         clap::Error {
             message: String::from("error: No Callback specified.\nFor more information try --help"),
