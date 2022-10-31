@@ -1,15 +1,10 @@
-// #[macro_use]
-use log::{debug, info};
-extern crate clap;
+use log::{LevelFilter, debug, info, warn, error};
+use simplelog::{TermLogger, TerminalMode, Config, ColorChoice};
 
-
-
-pub mod common;
+// extern crate clap;
+use clap::{Arg, Command};
 
 use std::path::{PathBuf};
-use clap::{Arg, Command};
-use crate::common::logger;
-use log::LevelFilter;
 
 /// Holds all available user arguments
 pub struct ParserOptions {
@@ -17,7 +12,15 @@ pub struct ParserOptions {
 }
 
 fn main() {
-    println!("Hello, world!");
+    // Setup logging
+    // more logging options found at https://crates.io/crates/log
+    TermLogger::init(
+        LevelFilter::Trace,
+        Config::default(),
+        TerminalMode::Stdout,
+        ColorChoice::Auto,
+    ).unwrap();
+
     let options = match parse_args() {
         Ok(o) => o,
         Err(desc) => {
@@ -26,12 +29,7 @@ fn main() {
         }
     };
 
-    // Apply log filter based on verbosity
-    // default to trace until verbosity arg is implemented
-    _ = logger::init();
-    // SimpleLogger::init(LogLevelFilter::Trace).expect("Unable to initialize logger");
-    info!(target: "main", "Starting rust-btc-parser v{} ...", env!("CARGO_PKG_VERSION"));
-    debug!(target: "main", "Using LogLevel {}", LevelFilter::Trace);
+    info!("Running parser in blockchain directory: [{}]", options.blockchain_dir.display());
 }
 
 fn parse_args() -> Result<ParserOptions, String> {
