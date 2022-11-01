@@ -1,3 +1,5 @@
+use std::process;
+
 use log::{LevelFilter, debug, info, warn, error};
 use simplelog::{TermLogger, TerminalMode, Config, ColorChoice};
 
@@ -5,6 +7,9 @@ use simplelog::{TermLogger, TerminalMode, Config, ColorChoice};
 use clap::{Arg, Command};
 
 use std::path::{PathBuf};
+
+pub mod blockchain;
+
 
 /// Holds all available user arguments
 pub struct ParserOptions {
@@ -24,12 +29,27 @@ fn main() {
     let options = match parse_args() {
         Ok(o) => o,
         Err(desc) => {
-            info!("{}", desc);
-            return;
+            error!("argument parsing err: {}", desc);
+            process::exit(1);
         }
     };
 
+    info!("Starting rusty-blockparser v{} ...", env!("CARGO_PKG_VERSION"));
     info!("Running parser in blockchain directory: [{}]", options.blockchain_dir.display());
+
+
+
+    // let chain_storage = match ChainStorage::new(&options) {
+    //     Ok(storage) => storage,
+    //     Err(e) => {
+    //         error!(
+    //             "Cannot load blockchain from: '{}'. {}",
+    //             options.borrow().blockchain_dir.display(),
+    //             e
+    //         );
+    //         process::exit(1);
+    //     }
+    // };
 }
 
 fn parse_args() -> Result<ParserOptions, String> {
@@ -51,7 +71,7 @@ fn parse_args() -> Result<ParserOptions, String> {
     let blockchain_dir: PathBuf;
     match matches.get_one::<String>("blockchain-dir") {
         Some(p) => blockchain_dir = PathBuf::from(p),
-        None => return Err(String::from("must specify --blockchain-dir in args"))
+        None => return Err(String::from("must specify --blockchain-dir"))
     };
 
     Ok(ParserOptions {
